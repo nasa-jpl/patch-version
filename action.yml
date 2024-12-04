@@ -1,0 +1,26 @@
+name: "patch-version"
+description: "Reads and then patches CMakeLists with new version upon PR merge"
+author: "Dennis Wai"
+inputs:
+  commit_msg:
+    description: "The commit message that triggered this action"
+    default: ""
+  commit_sha:
+    description: "The SHA of the commit that triggered the action"
+    default: ""
+outputs:
+  new_tag:
+    description: "Newly generated tag"
+  old_tag:
+    description: "Tag as read from repo at checkout"
+  bumped:
+    description: "The part (major,minor,patch) of version which was bumped"
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.commit_msg }}
+    - ${{ inputs.commit_sha }}
+branding:
+  icon: "edit-3"
+  color: "green"
