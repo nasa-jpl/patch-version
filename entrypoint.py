@@ -48,10 +48,8 @@ def is_bump_major_requested(description):
     if description is None:
         return False
     else:
-        return (
-            "bump version major" in description.lower()
-            or "bump major version" in description.lower()
-        )
+        key_phrases = ["bump version major", "bump major version", "#minor"]
+        return any([phrase in description.lower() for phrase in key_phrases])
 
 
 def is_bump_minor_requested(description):
@@ -63,10 +61,8 @@ def is_bump_minor_requested(description):
     if description is None:
         return False
     else:
-        return (
-            "bump version minor" in description.lower()
-            or "bump minor version" in description.lower()
-        )
+        key_phrases = ["bump version minor", "bump minor version", "#minor"]
+        return any([phrase in description.lower() for phrase in key_phrases])
 
 
 def parse_cmakelists_for_version(fpath_cmakelists):
