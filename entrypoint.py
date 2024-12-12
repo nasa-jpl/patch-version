@@ -49,7 +49,7 @@ def is_bump_major_requested(description):
     if description is None:
         return False
     else:
-        key_phrases = ["bump version major", "bump major version", "#minor"]
+        key_phrases = ["bump version major", "bump major version", "#major"]
         return any([phrase in description.lower() for phrase in key_phrases])
 
 
