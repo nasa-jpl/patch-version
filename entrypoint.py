@@ -30,6 +30,9 @@ def get_merge_request_description(sha):
     # Get PR desc via the input SHA
     repo = gh.get_repo(os.getenv("GITHUB_REPOSITORY"))
     commit = repo.get_commit(sha)
+    # The get_pulls function grabs all merged PRs that includes the commit SHA in question
+    # Although it can be more than one, let's keep our code simple by conditioning the
+    # success of this code to the assumption that there's only one returned and it is already merged
     pull_reqs = commit.get_pulls()
     if pull_reqs.totalCount == 1 and pull_reqs[0].is_merged():
         description = pull_reqs[0].body
