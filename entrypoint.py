@@ -28,14 +28,15 @@ def get_merge_request_description(sha):
     gh = github.Github(os.getenv("GITHUB_TOKEN"))
 
     # Get PR desc via the input SHA
-    print(os.getenv("GITHUB_REPOSITORY"))
     repo = gh.get_repo(os.getenv("GITHUB_REPOSITORY"))
     commit = repo.get_commit(sha)
-    for pull in commit.get_pulls():
-        description = pull.body
+    pull_reqs = commit.get_pulls()
+    if pull_reqs.totalCount == 1 and pull_reqs[0].is_merged():
+        description = pull_reqs[0].body
 
     if description is None:
         print("Unable to retrieve an associated pull request description")
+        sys.exit(-1)
     return description
 
 
@@ -152,10 +153,10 @@ if len(sys.argv) > 2:
 
 current_version = get_version_info_from_cmakelists_txt()
 if current_version is None:
-    sys.exit("Unsupported case where no current version is found, exiting")
+    print("Unsupported case where no current version is found, exiting")
+    sys.exit(-1)
 
-is_merge_commit = is_commit_a_merge_commit(commit_msg)
-if is_merge_commit:
+if is_commit_a_merge_commit(commit_msg):
     commit_msg = get_merge_request_description(commit_sha)
 
 bump_major = is_bump_major_requested(commit_msg)
@@ -165,9 +166,12 @@ part = "patch"
 new_version = current_version.copy()
 if bump_major:
     new_version[0] += 1
+    new_version[1] = 0
+    new_version[2] = 0
     part = "major"
 elif bump_minor:
     new_version[1] += 1
+    new_version[2] = 0
     part = "minor"
 else:
     # default is to always bump patch
