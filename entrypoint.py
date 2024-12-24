@@ -114,7 +114,7 @@ def get_latest_semantic_tag():
         return None
 
 
-def get_version_from_tag(self, tag):
+def get_version_from_tag(tag):
     """Retrieve semantic version info from project tag as a list of integers
 
     Returns semantic version information from a tag in the form of
