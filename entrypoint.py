@@ -90,17 +90,72 @@ def parse_cmakelists_for_version(fpath_cmakelists):
     return (r.search(lines), lines)
 
 
-def get_version_info_from_cmakelists_txt():
-    """Retrieve current version information in CMakeLists.txt
+def get_semantic_tags_from_git():
+    """Uses PyGithub to retrieve a list of git tags and then returns
+    them sorted"""
+    import github
 
-    Retrieves current version information from CMakeLists.txt as a list of
-    integers
-    """
-    m, __ = parse_cmakelists_for_version("CMakeLists.txt")
-    try:
-        return [int(i) for i in m.group(1).split(".")]
-    except Exception:
+    gh = github.Github(os.getenv("GITHUB_TOKEN"))
+    repo = gh.get_repo(os.getenv("GITHUB_REPOSITORY"))
+    tags = repo.get_tags()
+
+    return sorted([tag.name for tag in tags])
+
+
+def get_latest_semantic_tag():
+    """Given a sorted list of tags, returns the latest one by assuming
+    the last one is the latest"""
+    tags = get_semantic_tags_from_git()
+    if tags is None:
         return None
+    try:
+        return tags[-1]
+    except IndexError:
+        return None
+
+
+def get_version_from_tag(self, tag):
+    """Retrieve semantic version info from project tag as a list of integers
+
+    Returns semantic version information from a tag in the form of
+    "v0.0.1" as a list of integers; returns None if the string could not be
+    converted to a list of integers
+    """
+    if tag is None:
+        return None
+    match = re.findall(r"\d+", tag)
+    if len(match) != 3:
+        return None
+    try:
+        match = [int(i) for i in match]
+    except (ValueError, TypeError):
+        return None
+    return match
+
+
+def get_next_version(bump_major=False, bump_minor=False):
+    """Get latest tag and increment, patch, version_minor, or version_major
+    Returns the new latest version, the previous latest version and the part that got bumped
+    """
+    # Assume the part that gets bumped is the patch number
+    part = "patch"
+    latest_tag = get_latest_semantic_tag()
+    # If no tags exist, create an initial v0.0.1 release
+    if latest_tag is None:
+        return ([0, 0, 1], [0, 0, 0], part)
+
+    current_version = get_version_from_tag(latest_tag)
+    latest_version = current_version.copy()
+    if bump_major:
+        latest_version = [latest_version[0] + 1, 0, 0]
+        part = "major"
+    elif bump_minor:
+        latest_version = [latest_version[0], latest_version[1] + 1, 0]
+        part = "minor"
+    else:
+        latest_version[2] += 1
+
+    return (latest_version, current_version, part)
 
 
 def patch_cmakelists_txt(version):
@@ -154,38 +209,19 @@ if len(sys.argv) > 2:
     print(f"The commit_msg is:\n\t'{commit_msg}'")
     print(f"The commit_sha is:\n\t'{commit_sha}'")
 
-current_version = get_version_info_from_cmakelists_txt()
-if current_version is None:
-    print("Unsupported case where no current version is found, exiting")
-    sys.exit(-1)
-
 if is_commit_a_merge_commit(commit_msg):
     commit_msg = get_merge_request_description(commit_sha)
 
-bump_major = is_bump_major_requested(commit_msg)
-bump_minor = is_bump_minor_requested(commit_msg)
-
-part = "patch"
-new_version = current_version.copy()
-if bump_major:
-    new_version[0] += 1
-    new_version[1] = 0
-    new_version[2] = 0
-    part = "major"
-elif bump_minor:
-    new_version[1] += 1
-    new_version[2] = 0
-    part = "minor"
-else:
-    # default is to always bump patch
-    new_version[2] += 1
+new_version, current_version, bumped = get_next_version(
+    is_bump_major_requested(commit_msg), is_bump_minor_requested(commit_msg)
+)
 patch_cmakelists_txt(new_version)
 
 # Save and report on outputs of this action
 outputs = {
     "old_tag": f"v{'.'.join(map(str, current_version))}",
     "new_tag": f"v{'.'.join(map(str, new_version))}",
-    "bumped": f"{part}",
+    "bumped": f"{bumped}",
 }
 fp_github_output = os.getenv("GITHUB_OUTPUT")
 with open(fp_github_output, "a") as fp:
