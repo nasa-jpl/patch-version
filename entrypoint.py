@@ -139,7 +139,7 @@ def get_version_from_tag(tag):
     return match
 
 
-def get_tag_from_version(self, version):
+def get_tag_from_version(version):
     """Convert a list of three integers to a tag in string format
 
     For example, [0, 0, 1] is converted to "v0.0.1"
