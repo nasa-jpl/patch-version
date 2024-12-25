@@ -112,7 +112,7 @@ def get_latest_semantic_tag():
         # each element of the tuple, with a bias towards major,
         # then minor, then patch
         sorted_versions = sorted(
-            [get_version_from_tag(tag.name) for tag in tags],
+            [get_version_from_tag(tag) for tag in tags],
             key=lambda x: (x[0], x[1], x[2]),
         )
         return get_tag_from_version(sorted_versions[-1])
