@@ -91,25 +91,31 @@ def parse_cmakelists_for_version(fpath_cmakelists):
 
 
 def get_semantic_tags_from_git():
-    """Uses PyGithub to retrieve a list of git tags and then returns
-    them sorted"""
+    """Uses PyGithub to return a list of git tags"""
     import github
 
     gh = github.Github(os.getenv("GITHUB_TOKEN"))
     repo = gh.get_repo(os.getenv("GITHUB_REPOSITORY"))
     tags = repo.get_tags()
 
-    return sorted([tag.name for tag in tags])
+    return [tag.name for tag in tags]
 
 
 def get_latest_semantic_tag():
-    """Given a sorted list of tags, returns the latest one by assuming
-    the last one is the latest"""
+    """Given a list of semantic tags, returns the latest one through sorting"""
     tags = get_semantic_tags_from_git()
     if tags is None:
         return None
     try:
-        return tags[-1]
+        # For each elem, convert to a version, which is a tuple of the
+        # major/minor/patch number. Then, sort in ascending order for
+        # each element of the tuple, with a bias towards major,
+        # then minor, then patch
+        sorted_versions = sorted(
+            [get_version_from_tag(tag.name) for tag in tags],
+            key=lambda x: (x[0], x[1], x[2]),
+        )
+        return get_tag_from_version(sorted_versions[-1])
     except IndexError:
         return None
 
@@ -131,6 +137,14 @@ def get_version_from_tag(tag):
     except (ValueError, TypeError):
         return None
     return match
+
+
+def get_tag_from_version(self, version):
+    """Convert a list of three integers to a tag in string format
+
+    For example, [0, 0, 1] is converted to "v0.0.1"
+    """
+    return "v%d.%d.%d" % tuple(version)
 
 
 def get_next_version(bump_major=False, bump_minor=False):
